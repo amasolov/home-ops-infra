@@ -1,0 +1,78 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/budimanjojo/talhelper/master/pkg/config/schemas/talconfig.json
+---
+# renovate: datasource=docker depName=ghcr.io/siderolabs/installer
+talosVersion: v1.8.3
+# renovate: datasource=docker depName=ghcr.io/siderolabs/kubelet
+kubernetesVersion: v1.31.3
+
+clusterName: "home-kubernetes"
+endpoint: https://192.168.6.111:6443
+
+clusterPodNets:
+  - "10.69.0.0/16"
+clusterSvcNets:
+  - "10.96.0.0/16"
+
+additionalApiServerCertSans: &sans
+  - "192.168.6.111"
+  - "127.0.0.1"
+additionalMachineCertSans: *sans
+
+# Disable built-in Flannel to use Cilium
+cniConfig:
+  name: none
+
+nodes:
+  - hostname: "ktmb1-g-srv-003"
+    ipAddress: "192.168.6.100"
+    installDisk: "/dev/sda"
+    talosImageURL: factory.talos.dev/installer/ee21ef4a5ef808a9b7484cc0dda0f25075021691c8c09a276591eedb638ea1f9
+    controlPlane: true
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "dc:a6:32:a7:05:51"
+        dhcp: false
+        addresses:
+          - "192.168.6.100/24"
+        routes:
+          - network: 0.0.0.0/0
+            gateway: "192.168.6.1"
+        mtu: 1500
+        vip:
+          ip: "192.168.6.111"
+  - hostname: "ktmb1-g-srv-004"
+    ipAddress: "192.168.6.101"
+    installDisk: "/dev/sda"
+    talosImageURL: factory.talos.dev/installer/ee21ef4a5ef808a9b7484cc0dda0f25075021691c8c09a276591eedb638ea1f9
+    controlPlane: false
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "dc:a6:32:43:10:da"
+        dhcp: false
+        addresses:
+          - "192.168.6.101/24"
+        routes:
+          - network: 0.0.0.0/0
+            gateway: "192.168.6.1"
+        mtu: 1500
+
+# Global patches
+patches:
+  - "@./patches/global/cluster-discovery.yaml"
+  - "@./patches/global/containerd.yaml"
+  - "@./patches/global/disable-search-domain.yaml"
+  - "@./patches/global/dns.yaml"
+  - "@./patches/global/hostdns.yaml"
+  - "@./patches/global/kubelet.yaml"
+  - "@./patches/global/ntp.yaml"
+  - "@./patches/global/openebs-local.yaml"
+  - "@./patches/global/sysctl.yaml"
+
+# Controller patches
+controlPlane:
+  patches:
+    - "@./patches/controller/api-access.yaml"
+    - "@./patches/controller/cluster.yaml"
+    - "@./patches/controller/disable-admission-controller.yaml"
+    - "@./patches/controller/etcd.yaml"
+
